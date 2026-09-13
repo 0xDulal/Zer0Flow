@@ -167,6 +167,97 @@ create trigger leads_set_updated_at
   for each row execute function public.set_updated_at();
 
 -- ---------------------------------------------------------------------------
+-- Cross-workspace integrity triggers
+--
+-- These provide database-level guarantees that a row never references a record
+-- from a different workspace, independent of RLS and application code:
+--
+--   * activities.workspace_id must equal the workspace of the referenced lead.
+--   * a lead_tags row must link a lead and a tag in the SAME workspace.
+--
+-- SECURITY DEFINER lets the trigger read public.leads / public.tags without
+-- RLS interference (the checks compare workspace ids and raise otherwise;
+-- they never read a row's data back to the caller).
+-- ---------------------------------------------------------------------------
+
+create or replace function public.enforce_activity_workspace_matches_lead()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_lead_workspace uuid;
+begin
+  select w.workspace_id into v_lead_workspace
+  from public.leads w
+  where w.id = new.lead_id;
+
+  if v_lead_workspace is null then
+    raise exception 'activity references a lead (lead_id=%) that does not exist', new.lead_id;
+  end if;
+
+  if new.workspace_id is distinct from v_lead_workspace then
+    raise exception
+      'activity workspace_id (%) does not match its lead''s workspace (%)',
+      new.workspace_id, v_lead_workspace
+      using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.enforce_lead_tag_same_workspace()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_lead_workspace uuid;
+  v_tag_workspace uuid;
+begin
+  select workspace_id into v_lead_workspace
+  from public.leads
+  where id = new.lead_id;
+
+  select workspace_id into v_tag_workspace
+  from public.tags
+  where id = new.tag_id;
+
+  if v_lead_workspace is null then
+    raise exception 'lead_tags references a lead (lead_id=%) that does not exist', new.lead_id;
+  end if;
+
+  if v_tag_workspace is null then
+    raise exception 'lead_tags references a tag (tag_id=%) that does not exist', new.tag_id;
+  end if;
+
+  if v_lead_workspace is distinct from v_tag_workspace then
+    raise exception
+      'lead (workspace %) and tag (workspace %) belong to different workspaces',
+      v_lead_workspace, v_tag_workspace
+      using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger activities_enforce_workspace_matches_lead
+  before insert or update on public.activities
+  for each row execute function public.enforce_activity_workspace_matches_lead();
+
+create trigger lead_tags_enforce_same_workspace
+  before insert or update on public.lead_tags
+  for each row execute function public.enforce_lead_tag_same_workspace();
+
+revoke execute on function public.is_in_member_workspace(uuid) from public, anon;
+revoke execute on function public.enforce_activity_workspace_matches_lead() from public, anon;
+revoke execute on function public.enforce_lead_tag_same_workspace() from public, anon;
+
+-- ---------------------------------------------------------------------------
 -- RLS helper functions
 --
 -- SECURITY DEFINER functions run with the privileges of the migration owner,
@@ -187,6 +278,22 @@ as $$
     from public.workspace_members
     where workspace_members.workspace_id = target_workspace_id
       and workspace_members.user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_workspace_owner(target_workspace_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.workspace_members
+    where workspace_members.workspace_id = target_workspace_id
+      and workspace_members.user_id = auth.uid()
+      and workspace_members.role = 'owner'
   );
 $$;
 
@@ -221,12 +328,69 @@ as $$
 $$;
 
 revoke execute on function public.is_workspace_member(uuid) from public, anon;
+revoke execute on function public.is_workspace_owner(uuid) from public, anon;
 revoke execute on function public.is_lead_in_member_workspace(uuid) from public, anon;
 revoke execute on function public.is_tag_in_member_workspace(uuid) from public, anon;
 
 grant execute on function public.is_workspace_member(uuid) to authenticated;
+grant execute on function public.is_workspace_owner(uuid) to authenticated;
 grant execute on function public.is_lead_in_member_workspace(uuid) to authenticated;
 grant execute on function public.is_tag_in_member_workspace(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Workspace bootstrap
+--
+-- SECURITY DEFINER so that auth.uid() is the only user who can be recorded as
+-- the workspace owner: there is no argument that lets a caller designate
+-- another user as owner. search_path is pinned to public so the function can
+-- never pick up tables from the caller's search_path.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.bootstrap_workspace(p_name text, p_slug text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_full_name text;
+  v_workspace_id uuid;
+begin
+  if v_user is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+
+  if p_slug !~ '^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$' then
+    raise exception 'invalid workspace slug: must start/end alphanumeric, 3-64 chars, lowercase letters, digits, hyphens'
+      using errcode = '22023';
+  end if;
+
+  if p_name is null or btrim(p_name) = '' then
+    raise exception 'workspace name is required' using errcode = '22023';
+  end if;
+
+  select full_name into v_full_name
+  from public.profiles
+  where profiles.id = v_user;
+
+  insert into public.profiles (id, full_name)
+  values (v_user, coalesce(v_full_name, btrim(p_name)))
+  on conflict (id) do nothing;
+
+  insert into public.workspaces (name, slug)
+  values (btrim(p_name), p_slug)
+  returning id into v_workspace_id;
+
+  insert into public.workspace_members (workspace_id, user_id, role)
+  values (v_workspace_id, v_user, 'owner'::public.workspace_role);
+
+  return v_workspace_id;
+end;
+$$;
+
+revoke execute on function public.bootstrap_workspace(text, text) from public, anon;
+grant execute on function public.bootstrap_workspace(text, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security
@@ -245,10 +409,10 @@ alter table public.lead_tags enable row level security;
 create policy "workspaces_select_member" on public.workspaces
   for select using (public.is_workspace_member(id));
 
-create policy "workspaces_update_member" on public.workspaces
+create policy "workspaces_update_owner" on public.workspaces
   for update
-  using (public.is_workspace_member(id))
-  with check (public.is_workspace_member(id));
+  using (public.is_workspace_owner(id))
+  with check (public.is_workspace_owner(id));
 
 -- profiles ------------------------------------------------------------------
 
