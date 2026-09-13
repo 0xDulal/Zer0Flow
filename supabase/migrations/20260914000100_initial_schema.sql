@@ -253,7 +253,6 @@ create trigger lead_tags_enforce_same_workspace
   before insert or update on public.lead_tags
   for each row execute function public.enforce_lead_tag_same_workspace();
 
-revoke execute on function public.is_in_member_workspace(uuid) from public, anon;
 revoke execute on function public.enforce_activity_workspace_matches_lead() from public, anon;
 revoke execute on function public.enforce_lead_tag_same_workspace() from public, anon;
 
