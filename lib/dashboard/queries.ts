@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/supabase/database.types";
+import { dueStateFor, startOfDay } from "@/lib/leads/due";
 import type { LeadTemperature } from "@/lib/leads/format";
 import {
   groupLeadsByStage,
@@ -78,28 +79,8 @@ const TEMPERATURE_RANK: Record<LeadTemperature, number> = {
   DORMANT: 0,
 };
 
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
 function compareTemperature(a: LeadTemperature, b: LeadTemperature): number {
   return TEMPERATURE_RANK[b] - TEMPERATURE_RANK[a];
-}
-
-function dueStateFor(
-  dueAt: Date,
-  startOfToday: Date,
-  startOfTomorrow: Date,
-): DashboardAction["dueState"] | null {
-  if (dueAt < startOfToday) {
-    return "overdue";
-  }
-
-  if (dueAt < startOfTomorrow) {
-    return "today";
-  }
-
-  return null;
 }
 
 function compareTodaysActions(a: DashboardAction, b: DashboardAction): number {
@@ -222,7 +203,7 @@ export async function loadDashboard(
 
       const dueState = dueStateFor(dueAt, startOfToday, startOfTomorrow);
 
-      if (!dueState) {
+      if (dueState !== "overdue" && dueState !== "today") {
         return null;
       }
 
@@ -243,7 +224,10 @@ export async function loadDashboard(
 
       const dueAt = new Date(nextActionAt);
 
-      if (Number.isNaN(dueAt.getTime()) || dueAt < startOfTomorrow) {
+      if (
+        Number.isNaN(dueAt.getTime()) ||
+        dueStateFor(dueAt, startOfToday, startOfTomorrow) !== "upcoming"
+      ) {
         return null;
       }
 

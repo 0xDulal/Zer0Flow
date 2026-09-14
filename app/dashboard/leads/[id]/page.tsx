@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ActivityTimeline } from "@/components/leads/activity-timeline";
+import { LeadNextAction } from "@/components/leads/lead-next-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,6 +104,8 @@ export default async function LeadDetailPage({
         </Button>
       </div>
 
+      <LeadNextAction lead={lead} />
+
       <Card>
         <CardHeader>
           <CardTitle>Details</CardTitle>
@@ -187,46 +191,7 @@ export default async function LeadDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {activityError ? (
-            <p className="text-sm text-destructive">
-              Could not load activity: {activityError}
-            </p>
-          ) : activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity yet.</p>
-          ) : (
-            <ol className="space-y-4">
-              {activities.map((activity) => (
-                <li key={activity.id} className="flex gap-3">
-                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-border" />
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium">
-                        {activity.title}
-                      </span>
-                      <Badge variant="muted">
-                        {labelize(activity.type)}
-                      </Badge>
-                    </div>
-                    {activity.description ? (
-                      <p className="text-sm text-muted-foreground">
-                        {activity.description}
-                      </p>
-                    ) : null}
-                    <p className="text-xs text-muted-foreground">
-                      {formatDateTime(activity.occurred_at)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </CardContent>
-      </Card>
+      <ActivityTimeline activities={activities} error={activityError} />
     </div>
   );
 }

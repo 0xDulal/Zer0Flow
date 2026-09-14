@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { DashboardAction } from "@/lib/dashboard/queries";
-import { formatCurrency, formatDateTime, labelize } from "@/lib/leads/format";
+import { formatRelativeDue } from "@/lib/leads/due";
+import { formatCurrency, labelize } from "@/lib/leads/format";
 import type { LeadTemperature } from "@/lib/leads/format";
 
 type BadgeVariant = NonNullable<ComponentProps<typeof Badge>["variant"]>;
@@ -87,12 +88,12 @@ export function TodaysActions({ actions }: { actions: DashboardAction[] }) {
                         {labelize(action.lead.temperature)}
                       </Badge>
                       <span aria-hidden="true">·</span>
-                      <span>{formatDateTime(action.dueAt)}</span>
+                      <span>{formatRelativeDue(action.dueAt)}</span>
                     </div>
                   </div>
 
                   <span className="hidden shrink-0 text-xs font-medium text-muted-foreground group-hover:text-foreground sm:inline">
-                    Open →
+                    Open lead →
                   </span>
                 </Link>
               </li>
