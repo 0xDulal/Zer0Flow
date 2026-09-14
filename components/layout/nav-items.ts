@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users } from "lucide-react";
+import { Kanban, LayoutDashboard, Users } from "lucide-react";
 import type { ComponentType } from "react";
 
 export type NavItem = {
@@ -25,6 +25,11 @@ export const MAIN_NAV: readonly NavItem[] = [
     href: "/dashboard/leads",
     label: "Leads",
     icon: Users,
+  },
+  {
+    href: "/dashboard/pipeline",
+    label: "Pipeline",
+    icon: Kanban,
   },
 ];
 
