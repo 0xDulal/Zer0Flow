@@ -56,3 +56,35 @@ export async function ensureWorkspace(
 
   return {};
 }
+
+/**
+ * Resolves the workspace id to write to, derived from the authenticated
+ * user's membership (RLS-scoped). Bootstraps a workspace first if none exists.
+ * The workspace id is never accepted from client input.
+ */
+export async function resolveWorkspaceId(
+  client: TypedClient,
+  email?: string,
+): Promise<{ workspaceId?: string; error?: string }> {
+  const ensured = await ensureWorkspace(client, email);
+
+  if (ensured.error) {
+    return { error: ensured.error };
+  }
+
+  const { data, error } = await client
+    .from("workspace_members")
+    .select("workspace_id")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (!data) {
+    return { error: "No workspace is available for the current user." };
+  }
+
+  return { workspaceId: data.workspace_id };
+}

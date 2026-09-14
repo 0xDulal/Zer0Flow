@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { signOut } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { ensureWorkspace } from "@/lib/workspace";
 
@@ -34,21 +32,13 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-12">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome to Zer0Flow
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Signed in as {user.email}
-          </p>
-        </div>
-
-        <form action={signOut}>
-          <Button type="submit" variant="outline" size="sm">
-            Sign out
-          </Button>
-        </form>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Welcome to Zer0Flow
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Signed in as {user.email}
+        </p>
       </div>
 
       <Card>
