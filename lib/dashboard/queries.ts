@@ -1,6 +1,10 @@
-import { Constants } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
-import type { LeadTemperature, PipelineStage } from "@/lib/leads/format";
+import type { LeadTemperature } from "@/lib/leads/format";
+import {
+  groupLeadsByStage,
+  STAGE_RANK,
+  type PipelineStageSummary,
+} from "@/lib/leads/pipeline";
 import { createClient } from "@/lib/supabase/server";
 
 type TypedClient = Awaited<ReturnType<typeof createClient>>;
@@ -38,12 +42,6 @@ export type DashboardMetrics = {
   weightedPipeline: number;
 };
 
-export type PipelineStageSummary = {
-  stage: PipelineStage;
-  count: number;
-  value: number;
-};
-
 export type RecentActivityItem = {
   id: string;
   title: string;
@@ -68,28 +66,6 @@ export type DashboardResult = {
   error?: string;
 };
 
-/**
- * Revenue-producing pipeline stages shown in the main visualization.
- * Terminal stages (WON/LOST/NURTURE) are surfaced separately.
- */
-export const PIPELINE_REVENUE_STAGES: readonly PipelineStage[] = [
-  "PROSPECT",
-  "RESEARCHED",
-  "CONTACTED",
-  "REPLIED",
-  "QUALIFIED",
-  "CALL_BOOKED",
-  "CALL_DONE",
-  "PROPOSAL",
-  "NEGOTIATION",
-];
-
-export const PIPELINE_TERMINAL_STAGES: readonly PipelineStage[] = [
-  "WON",
-  "LOST",
-  "NURTURE",
-];
-
 const TODAY_ACTION_LIMIT = 7;
 const UPCOMING_LIMIT = 5;
 const HOT_OPPORTUNITY_LIMIT = 5;
@@ -101,12 +77,6 @@ const TEMPERATURE_RANK: Record<LeadTemperature, number> = {
   COLD: 1,
   DORMANT: 0,
 };
-
-const STAGE_RANK = new Map<PipelineStage, number>(
-  Constants.public.Enums.pipeline_stage.map(
-    (stage, index): [PipelineStage, number] => [stage, index],
-  ),
-);
 
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -233,19 +203,7 @@ export async function loadDashboard(
     ),
   };
 
-  const pipeline: PipelineStageSummary[] =
-    Constants.public.Enums.pipeline_stage.map((stage) => {
-      const stageLeads = leads.filter((lead) => lead.stage === stage);
-
-      return {
-        stage,
-        count: stageLeads.length,
-        value: stageLeads.reduce(
-          (total, lead) => total + (lead.deal_value ?? 0),
-          0,
-        ),
-      };
-    });
+  const pipeline: PipelineStageSummary[] = groupLeadsByStage(leads);
 
   const todaysActions = activeLeads
     .map((lead): DashboardAction | null => {

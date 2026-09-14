@@ -1,10 +1,12 @@
+import Link from "next/link";
+
 import { Card, CardContent } from "@/components/ui/card";
+import { formatCurrency, labelize } from "@/lib/leads/format";
 import {
   PIPELINE_REVENUE_STAGES,
   PIPELINE_TERMINAL_STAGES,
   type PipelineStageSummary,
-} from "@/lib/dashboard/queries";
-import { formatCurrency, labelize } from "@/lib/leads/format";
+} from "@/lib/leads/pipeline";
 
 function barWidth(
   value: number,
@@ -40,11 +42,19 @@ export function PipelineOverview({
 
   return (
     <section className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold tracking-tight">Pipeline</h2>
-        <p className="text-sm text-muted-foreground">
-          Where your opportunities are right now.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold tracking-tight">Pipeline</h2>
+          <p className="text-sm text-muted-foreground">
+            Where your opportunities are right now.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/pipeline"
+          className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          View pipeline →
+        </Link>
       </div>
 
       <Card>
