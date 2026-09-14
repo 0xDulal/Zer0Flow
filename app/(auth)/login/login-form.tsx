@@ -1,20 +1,29 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
-import { useActionState } from "react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn, type AuthFormState } from "@/lib/auth/actions";
 
+import { AuthMessage } from "../_components/auth-message";
+import { PasswordInput } from "../_components/password-input";
+
 const initialState: AuthFormState = {};
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(signIn, initialState);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
+      {state.error ? (
+        <AuthMessage variant="error">{state.error}</AuthMessage>
+      ) : null}
+
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -23,36 +32,36 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           required
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
+          placeholder="Your password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
           required
-          minLength={8}
         />
       </div>
 
-      {state.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {state.error}
-        </p>
-      ) : null}
-
-      <Button type="submit" className="w-full" disabled={isPending}>
+      <Button type="submit" size="lg" className="w-full" disabled={isPending}>
         {isPending ? (
           <>
             <LoaderCircle className="animate-spin" />
             Signing in…
           </>
         ) : (
-          "Sign in"
+          <>
+            Sign in
+            <ArrowRight />
+          </>
         )}
       </Button>
     </form>

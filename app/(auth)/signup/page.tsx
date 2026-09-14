@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Card, CardContent } from "@/components/ui/card";
-
+import { AuthDivider } from "../_components/auth-divider";
+import { GoogleAuthButton } from "../_components/google-auth-button";
 import { SignupForm } from "./signup-form";
 
 export const metadata: Metadata = {
@@ -11,23 +11,23 @@ export const metadata: Metadata = {
 
 export default function SignupPage() {
   return (
-    <div className="space-y-6">
-      <div className="space-y-1.5 text-center">
+    <div className="space-y-8">
+      <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Create your account
+          Create your Zer0Flow account
         </h1>
         <p className="text-sm text-muted-foreground">
-          Start turning prospects into clients with Zer0Flow
+          Turn prospects into clients with a system built for follow-through.
         </p>
       </div>
 
-      <Card>
-        <CardContent>
-          <SignupForm />
-        </CardContent>
-      </Card>
+      <div className="space-y-5">
+        <GoogleAuthButton />
+        <AuthDivider />
+        <SignupForm />
+      </div>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link
           href="/login"

@@ -1,20 +1,33 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
-import { useActionState } from "react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp, type AuthFormState } from "@/lib/auth/actions";
 
+import { AuthMessage } from "../_components/auth-message";
+import { PasswordInput } from "../_components/password-input";
+
 const initialState: AuthFormState = {};
 
 export function SignupForm() {
   const [state, formAction, isPending] = useActionState(signUp, initialState);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const passwordsMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
+      {state.error ? (
+        <AuthMessage variant="error">{state.error}</AuthMessage>
+      ) : null}
+
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -23,57 +36,62 @@ export function SignupForm() {
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           required
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
-          required
+          placeholder="At least 8 characters"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
           minLength={8}
+          required
         />
-        <p className="text-xs text-muted-foreground">
-          At least 8 characters.
-        </p>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm password</Label>
-        <Input
+        <PasswordInput
           id="confirmPassword"
           name="confirmPassword"
-          type="password"
           autoComplete="new-password"
-          required
+          placeholder="Re-enter your password"
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
           minLength={8}
+          aria-invalid={passwordsMismatch ? true : undefined}
+          required
         />
+        {passwordsMismatch ? (
+          <p role="alert" className="text-xs text-destructive">
+            Passwords do not match.
+          </p>
+        ) : null}
       </div>
 
-      {state.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {state.error}
-        </p>
-      ) : null}
-
-      {state.message ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {state.message}
-        </p>
-      ) : null}
-
-      <Button type="submit" className="w-full" disabled={isPending}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={isPending || passwordsMismatch}
+      >
         {isPending ? (
           <>
             <LoaderCircle className="animate-spin" />
             Creating account…
           </>
         ) : (
-          "Create account"
+          <>
+            Create account
+            <ArrowRight />
+          </>
         )}
       </Button>
     </form>
