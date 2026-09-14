@@ -80,7 +80,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const hasFilters = status !== "ALL" || query.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+    <div className="w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
