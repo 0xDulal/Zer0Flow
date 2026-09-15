@@ -1,0 +1,9 @@
+-- ============================================================================
+-- Zer0Flow: website audits
+--
+-- The website_audits schema was already deployed to the linked Supabase
+-- project by migration 20260914130735.
+--
+-- This migration is intentionally a no-op so the local migration history
+-- can represent the already-deployed schema without recreating objects.
+-- ============================================================================
