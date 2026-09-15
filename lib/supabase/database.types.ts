@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -249,6 +249,66 @@ export type Database = {
           },
         ]
       }
+      website_audits: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          facts: Json | null
+          final_url: string | null
+          id: string
+          lead_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["audit_status"]
+          updated_at: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          facts?: Json | null
+          final_url?: string | null
+          id?: string
+          lead_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["audit_status"]
+          updated_at?: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          facts?: Json | null
+          final_url?: string | null
+          id?: string
+          lead_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["audit_status"]
+          updated_at?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_audits_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_audits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           created_at: string
@@ -348,6 +408,7 @@ export type Database = {
         | "FOLLOW_UP"
         | "DEAL_WON"
         | "DEAL_LOST"
+      audit_status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED"
       lead_source: "LINKEDIN" | "COLD_EMAIL" | "REFERRAL" | "WEBSITE" | "OTHER"
       lead_status: "ACTIVE" | "PAUSED" | "WON" | "LOST" | "NURTURE"
       lead_temperature: "HOT" | "WARM" | "COLD" | "DORMANT"
@@ -509,6 +570,7 @@ export const Constants = {
         "DEAL_WON",
         "DEAL_LOST",
       ],
+      audit_status: ["QUEUED", "RUNNING", "COMPLETED", "FAILED"],
       lead_source: ["LINKEDIN", "COLD_EMAIL", "REFERRAL", "WEBSITE", "OTHER"],
       lead_status: ["ACTIVE", "PAUSED", "WON", "LOST", "NURTURE"],
       lead_temperature: ["HOT", "WARM", "COLD", "DORMANT"],
