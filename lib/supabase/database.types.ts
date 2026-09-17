@@ -251,6 +251,7 @@ export type Database = {
       }
       website_audits: {
         Row: {
+          claim_token: string | null
           completed_at: string | null
           created_at: string
           error: string | null
@@ -265,6 +266,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          claim_token?: string | null
           completed_at?: string | null
           created_at?: string
           error?: string | null
@@ -279,6 +281,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          claim_token?: string | null
           completed_at?: string | null
           created_at?: string
           error?: string | null

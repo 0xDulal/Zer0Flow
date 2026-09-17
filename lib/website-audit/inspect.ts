@@ -26,7 +26,26 @@ export type WebsiteInspectionErrorCode =
 export type WebsiteInspectionError = {
   code: WebsiteInspectionErrorCode;
   message: string;
+  /**
+   * When true the failure is caused by the browser/tooling environment rather
+   * than by the website itself, so a Trigger.dev run should treat it as an
+   * infrastructure failure and retry instead of persisting a terminal FAILED.
+   */
+  retryable: boolean;
 };
+
+/**
+ * Codes that describe tooling/infrastructure failures. Every other code is a
+ * deterministic, website-specific failure that must NOT be retried:
+ *   INVALID_URL / DNS_RESOLVE_FAILED / NAVIGATION_FAILED / REDIRECT_LIMIT /
+ *   TIMEOUT
+ * are classification A (terminal FAILED); BROWSER_ERROR / INSPECTION_FAILED
+ * are classification B (throw so Trigger.dev retries).
+ */
+const RETRYABLE_ERROR_CODES = new Set<WebsiteInspectionErrorCode>([
+  "BROWSER_ERROR",
+  "INSPECTION_FAILED",
+]);
 
 export type WebsiteFacts = {
   title: string | null;
@@ -119,7 +138,14 @@ function error(
   code: WebsiteInspectionErrorCode,
   message?: string,
 ): { ok: false; error: WebsiteInspectionError } {
-  return { ok: false, error: { code, message: message ?? MESSAGES[code] } };
+  return {
+    ok: false,
+    error: {
+      code,
+      message: message ?? MESSAGES[code],
+      retryable: RETRYABLE_ERROR_CODES.has(code),
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +226,8 @@ export async function inspectWebsite(
 type NavFailure = {
   code: "NAVIGATION_FAILED" | "REDIRECT_LIMIT";
   message: string;
+  // Navigation and redirect rejections are deterministic website failures.
+  retryable: false;
 };
 
 type CdpHeader = { name: string; value: string };
@@ -254,7 +282,7 @@ async function runInspection(
 
   const recordNavFailure = (code: NavFailure["code"]): void => {
     if (!navFailure) {
-      navFailure = { code, message: MESSAGES[code] };
+      navFailure = { code, message: MESSAGES[code], retryable: false };
     }
   };
 
